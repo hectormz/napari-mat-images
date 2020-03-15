@@ -11,13 +11,12 @@ your plugin doesn't need to import, or even depend on napari at all!
 
 Replace code below accordingly.
 """
+# for optional type hints only, otherwise you can delete/ignore this stuff
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+
 import imageio
 import numpy as np
-
 from pluggy import HookimplMarker
-
-# for optional type hints only, otherwise you can delete/ignore this stuff
-from typing import List, Optional, Union, Any, Tuple, Dict, Callable
 
 LayerData = Union[Tuple[Any], Tuple[Any, Dict], Tuple[Any, Dict, str]]
 PathLike = Union[str, List[str]]
@@ -25,7 +24,9 @@ ReaderFunction = Callable[[PathLike], List[LayerData]]
 # END type hint stuff.
 
 napari_hook_implementation = HookimplMarker("napari")
-IMAGEIO_EXTENSIONS = tuple(set(x for f in imageio.formats for x in f.extensions))
+IMAGEIO_EXTENSIONS = tuple(
+    set(x for f in imageio.formats for x in f.extensions)
+)
 
 
 @napari_hook_implementation

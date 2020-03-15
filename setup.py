@@ -15,8 +15,6 @@ def read(fname):
 install_requires = []
 
 
-
-
 setup(
     name='napari-mat-images',
     version='0.1.0',
@@ -45,9 +43,5 @@ setup(
         'Operating System :: OS Independent',
         'License :: OSI Approved :: BSD License',
     ],
-    entry_points={
-        'napari.plugin': [
-            'mat-images = napari_mat_images',
-        ],
-    },
+    entry_points={'napari.plugin': ['mat-images = napari_mat_images',],},
 )
