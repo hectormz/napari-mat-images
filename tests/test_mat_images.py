@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from napari_mat_images import napari_get_reader
+from napari_mat_images import napari_get_reader, shape_is_image
 
 
 # # the best test here would to use tempfile.NamedTemporaryFile
@@ -33,3 +33,14 @@ def test_get_reader_with_list():
 def test_get_reader_pass():
     reader = napari_get_reader('fake.file')
     assert reader is None
+
+
+def test_is_image():
+    shape = [300, 200, 8000]
+    assert shape_is_image(shape)
+
+    shape = [200, 200, 1]
+    assert shape_is_image(shape)
+
+    shape = [200, 1, 1]
+    assert ~shape_is_image(shape)

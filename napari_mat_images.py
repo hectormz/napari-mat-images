@@ -12,7 +12,7 @@ your plugin doesn't need to import, or even depend on napari at all!
 Replace code below accordingly.
 """
 # for optional type hints only, otherwise you can delete/ignore this stuff
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import imageio
 import numpy as np
@@ -53,3 +53,16 @@ def reader_function(path: PathLike) -> List[LayerData]:
     # is (data, [meta_dict, [layer_type]])
     meta = {}  # optional kwargs for the corresponding viewer.add_* method
     return [(data, meta)]
+
+
+def shape_is_image(shape: Sequence) -> bool:
+    """Checks if shape of array provided is at least 2D
+    
+    Args:
+        shape (Sequence): shape of array to 
+    
+    Returns:
+        bool : Whether shape belongs to at least 2D image
+    """
+    dims = np.sum(np.array(shape) > 1)
+    return dims >= 2
