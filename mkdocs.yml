@@ -1,0 +1,10 @@
+site_name: napari-mat-images
+site_description: A plugin to load images stored in .mat files with napari
+site_author: Hector Munoz
+
+theme: readthedocs
+
+repo_url: https://github.com/hectormz/napari-mat-images
+
+pages:
+- Home: index.md
