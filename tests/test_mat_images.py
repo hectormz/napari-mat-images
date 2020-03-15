@@ -18,14 +18,14 @@ from napari_mat_images import napari_get_reader, shape_is_image
 
 
 def test_get_reader_hit():
-    reader = napari_get_reader('fake.tif')
+    reader = napari_get_reader('fake.mat')
     assert reader is not None
     assert callable(reader)
 
 
 def test_get_reader_with_list():
     # a better test here would use real data
-    reader = napari_get_reader(['fake.tif'])
+    reader = napari_get_reader(['fake.mat'])
     assert reader is not None
     assert callable(reader)
 
