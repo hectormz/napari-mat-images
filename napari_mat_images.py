@@ -55,14 +55,14 @@ def reader_function(path: PathLike) -> List[LayerData]:
     return [(data, meta)]
 
 
-def shape_is_image(shape: Sequence) -> bool:
+def shape_is_image(shape: Sequence, min_size: int = 20) -> bool:
     """Checks if shape of array provided is at least 2D
-    
+
     Args:
-        shape (Sequence): shape of array to 
-    
+        shape (Sequence): shape of array to check
+
     Returns:
         bool : Whether shape belongs to at least 2D image
     """
-    dims = np.sum(np.array(shape) > 1)
+    dims = np.sum(np.array(shape) > min_size)
     return dims >= 2
