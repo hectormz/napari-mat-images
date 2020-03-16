@@ -6,13 +6,14 @@ import codecs
 from setuptools import setup
 
 
+def requirements():
+    with open("requirements.txt", "r+") as f:
+        return f.read()
+
+
 def read(fname):
     file_path = os.path.join(os.path.dirname(__file__), fname)
     return codecs.open(file_path, encoding='utf-8').read()
-
-
-# Add your dependencies here
-install_requires = []
 
 
 setup(
@@ -28,7 +29,7 @@ setup(
     long_description=read('README.rst'),
     py_modules=['napari_mat_images'],
     python_requires='>=3.6',
-    install_requires=install_requires,
+    install_requires=requirements(),
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
