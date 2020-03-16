@@ -10,13 +10,9 @@ napari-mat-images
     :target: https://pypi.org/project/napari-mat-images
     :alt: Python versions
 
-.. image:: https://travis-ci.org/hectormz/napari-mat-images.svg?branch=master
-    :target: https://travis-ci.org/hectormz/napari-mat-images
-    :alt: See Build Status on Travis CI
-
-.. image:: https://ci.appveyor.com/api/projects/status/github/hectormz/napari-mat-images?branch=master
-    :target: https://ci.appveyor.com/project/hectormz/napari-mat-images/branch/master
-    :alt: See Build Status on AppVeyor
+.. image:: https://dev.azure.com/hectormz-1/napari-mat-images/_apis/build/status/hectormz.napari-mat-images?branchName=master
+    :target: https://dev.azure.com/hectormz-1/napari-mat-images/_build/latest?definitionId=1&branchName=master
+    :alt: See Build Status on Azure Pipelines
 
 A plugin to load images stored in .mat files with napari
 
