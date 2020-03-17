@@ -5,7 +5,6 @@ from tempfile import NamedTemporaryFile
 
 import hdf5storage
 import numpy as np
-import pytest
 import scipy.io as sio
 
 from napari_mat_images import (
@@ -35,18 +34,15 @@ def test_reader_channel_axis():
         assert in_data[0][1]["channel_axis"] == 3
 
 
-@pytest.mark.skipif(
-    os.name == "nt", reason="Reading temp file here fails on Windows"
-)
-def test_reader_hdf5():
-    with NamedTemporaryFile(suffix='.mat', delete=False) as tmp:
-        out_data = np.random.randint(0, 255, (25, 25, 30), dtype='uint8')
-        mdict = {}
-        mdict[u'array'] = out_data
-        hdf5storage.savemat(tmp.name, mdict, format='7.3')
-        reader = napari_get_reader(tmp.name)
-        in_data = reader(tmp.name)
-        assert in_data[0][0].shape == (30, 25, 25)
+def test_reader_hdf5(tmp_path):
+    out_data = np.random.randint(0, 255, (25, 25, 30), dtype='uint8')
+    mdict = {}
+    mdict[u'array'] = out_data
+    tmp = str(tmp_path / "temp.mat")
+    hdf5storage.savemat(tmp, mdict, format='7.3')
+    reader = napari_get_reader(tmp)
+    in_data = reader(tmp)
+    assert in_data[0][0].shape == (30, 25, 25)
 
 
 def test_reader_no_images():
