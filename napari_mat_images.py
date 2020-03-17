@@ -3,6 +3,7 @@ This module is a plugin to read images from .mat files in napari
 """
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
+import h5py
 import numpy as np
 import scipy.io as sio
 from pluggy import HookimplMarker
@@ -39,22 +40,39 @@ def load_mat_vars(file_path: str) -> Dict:
     Returns:
         Dict: dictionary of image variables. Empty if file contains no images
     """
-    # Load variable details before loading
-    mat_vars = sio.whosmat(file_path)
-    # Check if each variable is image based on shape
-    is_image_list = [shape_is_image(var[1]) for var in mat_vars]
-    var_list = [var[0] for var in mat_vars]
-    # Filter list of variables whether they are images
-    var_list = [i for (i, v) in zip(var_list, is_image_list) if v]
-    if len(var_list) > 0:
-        mat_dict = sio.loadmat(
-            file_path, variable_names=var_list, squeeze_me=True
-        )
-        for var in list(mat_dict.keys()):
-            if not hasattr(mat_dict[var], 'shape'):
-                del mat_dict[var]
-    else:
+    try:
+        # Load variable details before loading
+        mat_vars = sio.whosmat(file_path)
+        # Check if each variable is image based on shape
+        is_image_list = [shape_is_image(var[1]) for var in mat_vars]
+        var_list = [var[0] for var in mat_vars]
+        # Filter list of variables whether they are images
+        var_list = [i for (i, v) in zip(var_list, is_image_list) if v]
+        if len(var_list) > 0:
+            mat_dict = sio.loadmat(
+                file_path, variable_names=var_list, squeeze_me=True
+            )
+            for var in list(mat_dict.keys()):
+                if not hasattr(mat_dict[var], 'shape'):
+                    del mat_dict[var]
+        else:
+            mat_dict = {}
+    except NotImplementedError:
+        mat_file = h5py.File(file_path, mode='r')
+        var_list = list(mat_file.keys())
+        # discard #refs# entry
+        try:
+            var_list.remove("#refs#")
+        except ValueError:
+            pass
+        is_image_list = [
+            shape_is_image(mat_file[var].shape) for var in var_list
+        ]
+        # Filter list of variables whether they are images
+        var_list = [i for (i, v) in zip(var_list, is_image_list) if v]
         mat_dict = {}
+        for var in var_list:
+            mat_dict[var] = mat_file[var][()].squeeze()
     return mat_dict
 
 
@@ -65,22 +83,18 @@ def reader_function(path: PathLike) -> List[LayerData]:
     # Generate list to hold potential images from each path provided
     data_list = [None for __ in range(len(paths))]
     for i, _path in enumerate(paths):
-        try:
-            mat_dict = load_mat_vars(_path)
-            if not mat_dict:
-                continue
-            var_list = list(mat_dict.keys())
-            data = [None for __ in var_list]
-            for j, var in enumerate(var_list):
-                # optional kwargs for the corresponding viewer.add_* method
-                meta = {"name": var}
-                if len(mat_dict[var].shape) == 4:
-                    meta["channel_axis"] = 3
-                data[j] = (prep_array(mat_dict[var]), meta)
-            data_list[i] = data
-        except NotImplementedError:
-            # Scipy.io.loadmat does not support v7.3 files
-            print('v7.3 .mat files not supported.')
+        mat_dict = load_mat_vars(_path)
+        if not mat_dict:
+            continue
+        var_list = list(mat_dict.keys())
+        data = [None for __ in var_list]
+        for j, var in enumerate(var_list):
+            # optional kwargs for the corresponding viewer.add_* method
+            meta = {"name": var}
+            if len(mat_dict[var].shape) == 4:
+                meta["channel_axis"] = 3
+            data[j] = (prep_array(mat_dict[var]), meta)
+        data_list[i] = data
 
     # Return None if no .mat files could be read
     if all(value is None for value in data_list):
