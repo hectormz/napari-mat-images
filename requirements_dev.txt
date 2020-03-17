@@ -1,4 +1,5 @@
 black
+hdf5storage
 isort
 pytest
 pytest-cov
