@@ -98,10 +98,26 @@ def reader_function(path: PathLike) -> List[LayerData]:
                 meta["channel_axis"] = 3
             if isinstance(mat_dict[var], da.Array):
                 meta["is_pyramid"] = False
-                meta["contrast_limits"] = [
-                    np.iinfo(mat_dict[var].dtype).min,
-                    np.iinfo(mat_dict[var].dtype).max,
-                ]
+                if len(mat_dict[var].shape) > 2:
+                    num_samples = min(100, mat_dict[var].shape[0])
+                    random_samples = np.random.choice(
+                        mat_dict[var].shape[0], num_samples, replace=False
+                    )
+                    # If unsigned int, use 0 as lower bound
+                    if np.issubdtype(mat_dict[var].dtype, np.unsignedinteger):
+                        contrast_min = 0
+                    else:
+                        contrast_min = (
+                            mat_dict[var][random_samples].min().compute()
+                        )
+                    contrast_max = (
+                        mat_dict[var][random_samples].max().compute()
+                    )
+                else:
+                    contrast_min = mat_dict[var].min().compute()
+                    contrast_max = mat_dict[var].max().compute()
+
+                meta["contrast_limits"] = [contrast_min, contrast_max]
             data[j] = (prep_array(mat_dict[var]), meta)
         data_list[i] = data
 
