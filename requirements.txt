@@ -1,3 +1,4 @@
+dask[delayed]
 h5py
 numpy
 pluggy

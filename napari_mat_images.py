@@ -3,6 +3,7 @@ This module is a plugin to read images from .mat files in napari
 """
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
+import dask.array as da
 import h5py
 import numpy as np
 import scipy.io as sio
@@ -72,7 +73,9 @@ def load_mat_vars(file_path: str) -> Dict:
         var_list = [i for (i, v) in zip(var_list, is_image_list) if v]
         mat_dict = {}
         for var in var_list:
-            mat_dict[var] = mat_file[var][()].squeeze()
+            mat_dict[var] = da.from_array(
+                mat_file[var], chunks=mat_file[var].chunks
+            ).squeeze()
     return mat_dict
 
 
@@ -93,6 +96,28 @@ def reader_function(path: PathLike) -> List[LayerData]:
             meta = {"name": var}
             if len(mat_dict[var].shape) == 4:
                 meta["channel_axis"] = 3
+            if isinstance(mat_dict[var], da.Array):
+                meta["is_pyramid"] = False
+                if len(mat_dict[var].shape) > 2:
+                    num_samples = min(100, mat_dict[var].shape[0])
+                    random_samples = np.random.choice(
+                        mat_dict[var].shape[0], num_samples, replace=False
+                    )
+                    # If unsigned int, use 0 as lower bound
+                    if np.issubdtype(mat_dict[var].dtype, np.unsignedinteger):
+                        contrast_min = 0
+                    else:
+                        contrast_min = (
+                            mat_dict[var][random_samples].min().compute()
+                        )
+                    contrast_max = (
+                        mat_dict[var][random_samples].max().compute()
+                    )
+                else:
+                    contrast_min = mat_dict[var].min().compute()
+                    contrast_max = mat_dict[var].max().compute()
+
+                meta["contrast_limits"] = [contrast_min, contrast_max]
             data[j] = (prep_array(mat_dict[var]), meta)
         data_list[i] = data
 
