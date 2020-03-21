@@ -79,6 +79,45 @@ def load_mat_vars(file_path: str) -> Dict:
     return mat_dict
 
 
+def dask_contrast_limits(dask_array, axis=0, num_samples=100) -> List[float]:
+    """Determine min/max of dask arrays along axis if n-dimensional
+    
+    Args:
+        dask_array (dask.array): n-dimensional dask array
+        axis (int): Axis along n-dimensional array to sample min/max
+        num_samples (int): Number of slices to sample from if large array.
+    
+    Returns:
+        List[float]: min/max of dask array
+    """
+    if not isinstance(dask_array, da.Array):
+        raise TypeError("dask array expected")
+    if len(dask_array.shape) > 2:
+        if num_samples is None:
+            num_samples = dask_array.shape[axis]
+        num_samples = min(num_samples, dask_array.shape[axis])
+        random_samples = np.random.choice(
+            dask_array.shape[axis], num_samples, replace=False
+        )
+        # If unsigned int, use 0 as lower bound
+        if np.issubdtype(dask_array.dtype, np.unsignedinteger):
+            contrast_min = 0
+        else:
+            contrast_min = dask_array[random_samples].min().compute()
+        contrast_max = dask_array[random_samples].max().compute()
+    elif len(dask_array.shape) == 2:
+        if num_samples is None:
+            num_samples = dask_array.size
+        num_samples = min(num_samples, dask_array.size)
+        row_ind = np.random.randint(0, dask_array.shape[0], num_samples)
+        col_ind = np.random.randint(0, dask_array.shape[1], num_samples)
+        contrast_min = dask_array.vindex[row_ind, col_ind].min().compute()
+        contrast_max = dask_array.vindex[row_ind, col_ind].max().compute()
+    else:
+        raise ValueError("Dask array of dimensions >= 2 required.")
+    return [contrast_min, contrast_max]
+
+
 def reader_function(path: PathLike) -> List[LayerData]:
     """Take a path or list of paths and return a list of LayerData tuples."""
     paths = [path] if isinstance(path, str) else path
@@ -98,27 +137,8 @@ def reader_function(path: PathLike) -> List[LayerData]:
                 meta["channel_axis"] = 3
             if isinstance(mat_dict[var], da.Array):
                 meta["is_pyramid"] = False
-                if len(mat_dict[var].shape) > 2:
-                    num_samples = min(100, mat_dict[var].shape[0])
-                    random_samples = np.random.choice(
-                        mat_dict[var].shape[0], num_samples, replace=False
-                    )
-                    # If unsigned int, use 0 as lower bound
-                    if np.issubdtype(mat_dict[var].dtype, np.unsignedinteger):
-                        contrast_min = 0
-                    else:
-                        contrast_min = (
-                            mat_dict[var][random_samples].min().compute()
-                        )
-                    contrast_max = (
-                        mat_dict[var][random_samples].max().compute()
-                    )
-                else:
-                    contrast_min = mat_dict[var].min().compute()
-                    contrast_max = mat_dict[var].max().compute()
-
-                meta["contrast_limits"] = [contrast_min, contrast_max]
             data[j] = (prep_array(mat_dict[var]), meta)
+                meta["contrast_limits"] = dask_contrast_limits(mat_dict[var])
         data_list[i] = data
 
     # Return None if no .mat files could be read

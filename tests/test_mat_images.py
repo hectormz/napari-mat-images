@@ -2,11 +2,14 @@
 
 from tempfile import NamedTemporaryFile
 
+import dask.array as da
 import hdf5storage
 import numpy as np
+import pytest
 import scipy.io as sio
 
 from napari_mat_images import (
+    dask_contrast_limits,
     napari_get_reader,
     prep_array,
     rearrange_dims,
@@ -107,3 +110,39 @@ def test_prep_array_bool():
     array[0, 0] = 1
     array_prepped = prep_array(array)
     assert array_prepped.dtype == "bool"
+
+
+def test_dask_contrast_limits_all():
+    array = da.random.randint(0, 2, (1000, 10, 15))
+    contrast_limits = dask_contrast_limits(array, axis=0, num_samples=None)
+    assert contrast_limits == [0, 1]
+
+
+def test_dask_contrast_limits():
+    array = da.random.randint(0, 2, (1000, 10, 15))
+    contrast_limits = dask_contrast_limits(array, axis=0)
+    assert contrast_limits == [0, 1]
+
+
+def test_dask_contrast_limits_2d():
+    array = da.random.randint(6, 8, (10, 15))
+    contrast_limits = dask_contrast_limits(array)
+    assert contrast_limits == [6, 7]
+
+
+def test_dask_contrast_limits_2d_all():
+    array = da.random.randint(6, 8, (10, 15))
+    contrast_limits = dask_contrast_limits(array, axis=0, num_samples=None)
+    assert contrast_limits == [6, 7]
+
+
+def test_dask_contrast_limits_1d():
+    array = da.random.randint(0, 2, 1000)
+    with pytest.raises(ValueError):
+        dask_contrast_limits(array)
+
+
+def test_dask_contrast_limits_np():
+    array = np.random.randint(0, 2, (1000, 10, 15))
+    with pytest.raises(TypeError):
+        dask_contrast_limits(array)
