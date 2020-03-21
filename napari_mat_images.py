@@ -81,54 +81,6 @@ def load_mat_vars(file_path: str) -> Dict:
     return mat_dict
 
 
-def array_contrast_limits(array, axis=0, num_samples=100) -> List[float]:
-    """Determine min/max of numpy/dask arrays along axis if n-dimensional
-    
-    Args:
-        dask_array (Union[np.ndarray, dask.array]): n-dimensional array
-        axis (int): Axis along n-dimensional array to sample min/max
-        num_samples (int): Number of slices to sample from if large array.
-    
-    Returns:
-        List[float]: min/max of array
-    """
-    if not isinstance(array, da.Array) and not isinstance(array, np.ndarray):
-        raise TypeError("dask/numpy array expected")
-    if len(array.shape) > 2:
-        if num_samples is None:
-            num_samples = array.shape[axis]
-        num_samples = min(num_samples, array.shape[axis])
-        random_samples = np.random.choice(
-            array.shape[axis], num_samples, replace=False
-        )
-        # If unsigned int, use 0 as lower bound
-        if np.issubdtype(array.dtype, np.unsignedinteger):
-            contrast_min = 0
-        else:
-            contrast_min = array[random_samples].min()
-            if isinstance(array, da.Array):
-                contrast_min = contrast_min.compute()
-        contrast_max = array[random_samples].max()
-        if isinstance(array, da.Array):
-            contrast_max = contrast_max.compute()
-    elif len(array.shape) == 2:
-        if num_samples is None:
-            num_samples = array.size
-        num_samples = min(num_samples, array.size)
-        row_ind = np.random.randint(0, array.shape[0], num_samples)
-        col_ind = np.random.randint(0, array.shape[1], num_samples)
-        if isinstance(array, da.Array):
-            contrast_min = array.vindex[row_ind, col_ind].min().compute()
-            contrast_max = array.vindex[row_ind, col_ind].max().compute()
-        else:
-            contrast_min = array[row_ind, col_ind].min()
-            contrast_max = array[row_ind, col_ind].max()
-    else:
-        raise ValueError("Array of dimensions >= 2 required.")
-
-    return [contrast_min, contrast_max]
-
-
 def reader_function(path: PathLike) -> List[LayerData]:
     """Take a path or list of paths and return a list of LayerData tuples."""
     paths = [path] if isinstance(path, str) else path
@@ -218,3 +170,51 @@ def rearrange_dims(array: np.ndarray) -> np.ndarray:
         if np.all(array.shape[2] > np.array(array.shape[0:2])):
             array = np.moveaxis(array, 2, 0)
     return array
+
+
+def array_contrast_limits(array, axis=0, num_samples=100) -> List[float]:
+    """Determine min/max of numpy/dask arrays along axis if n-dimensional
+    
+    Args:
+        dask_array (Union[np.ndarray, dask.array]): n-dimensional array
+        axis (int): Axis along n-dimensional array to sample min/max
+        num_samples (int): Number of slices to sample from if large array.
+    
+    Returns:
+        List[float]: min/max of array
+    """
+    if not isinstance(array, da.Array) and not isinstance(array, np.ndarray):
+        raise TypeError("dask/numpy array expected")
+    if len(array.shape) > 2:
+        if num_samples is None:
+            num_samples = array.shape[axis]
+        num_samples = min(num_samples, array.shape[axis])
+        random_samples = np.random.choice(
+            array.shape[axis], num_samples, replace=False
+        )
+        # If unsigned int, use 0 as lower bound
+        if np.issubdtype(array.dtype, np.unsignedinteger):
+            contrast_min = 0
+        else:
+            contrast_min = array[random_samples].min()
+            if isinstance(array, da.Array):
+                contrast_min = contrast_min.compute()
+        contrast_max = array[random_samples].max()
+        if isinstance(array, da.Array):
+            contrast_max = contrast_max.compute()
+    elif len(array.shape) == 2:
+        if num_samples is None:
+            num_samples = array.size
+        num_samples = min(num_samples, array.size)
+        row_ind = np.random.randint(0, array.shape[0], num_samples)
+        col_ind = np.random.randint(0, array.shape[1], num_samples)
+        if isinstance(array, da.Array):
+            contrast_min = array.vindex[row_ind, col_ind].min().compute()
+            contrast_max = array.vindex[row_ind, col_ind].max().compute()
+        else:
+            contrast_min = array[row_ind, col_ind].min()
+            contrast_max = array[row_ind, col_ind].max()
+    else:
+        raise ValueError("Array of dimensions >= 2 required.")
+
+    return [contrast_min, contrast_max]
