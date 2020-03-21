@@ -28,23 +28,24 @@ def test_reader():
 
 def test_reader_channel_axis():
     with NamedTemporaryFile(suffix='.mat', delete=False) as tmp:
-        out_data = np.random.rand(25, 25, 30, 3)
+        out_data = np.random.rand(27, 25, 30, 3)
         sio.savemat(tmp.name, {"array": out_data})
         reader = napari_get_reader(tmp.name)
         in_data = reader(tmp.name)
-        assert in_data[0][0].shape == (30, 25, 25, 3)
+        assert in_data[0][0].shape == (30, 27, 25, 3)
         assert in_data[0][1]["channel_axis"] == 3
 
 
 def test_reader_hdf5(tmp_path):
-    out_data = np.random.randint(0, 255, (25, 25, 30), dtype='uint8')
+    out_data = np.random.randint(0, 255, (27, 25, 30, 4), dtype='uint8')
     mdict = {}
     mdict[u'array'] = out_data
     tmp = str(tmp_path / "temp.mat")
     hdf5storage.savemat(tmp, mdict, format='7.3')
     reader = napari_get_reader(tmp)
     in_data = reader(tmp)
-    assert in_data[0][0].shape == (30, 25, 25)
+    assert in_data[0][0].shape == (30, 27, 25, 4)
+    assert in_data[0][1]["channel_axis"] == 3
 
 
 def test_reader_no_images():

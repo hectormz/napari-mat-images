@@ -73,9 +73,11 @@ def load_mat_vars(file_path: str) -> Dict:
         var_list = [i for (i, v) in zip(var_list, is_image_list) if v]
         mat_dict = {}
         for var in var_list:
-            mat_dict[var] = da.from_array(
+            array = da.from_array(
                 mat_file[var], chunks=mat_file[var].chunks
             ).squeeze()
+            # .mat are saved in reverse order
+            mat_dict[var] = da.transpose(array)
     return mat_dict
 
 
