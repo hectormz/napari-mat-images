@@ -9,7 +9,7 @@ import pytest
 import scipy.io as sio
 
 from napari_mat_images import (
-    dask_contrast_limits,
+    array_contrast_limits,
     napari_get_reader,
     prep_array,
     rearrange_dims,
@@ -28,16 +28,44 @@ def test_reader():
 
 def test_reader_channel_axis():
     with NamedTemporaryFile(suffix='.mat', delete=False) as tmp:
-        out_data = np.random.rand(27, 25, 30, 3)
+        out_data = np.stack(
+            (
+                np.random.randint(0, 8, (27, 25, 30), dtype='uint8'),
+                np.random.randint(25, 29, (27, 25, 30), dtype='uint8'),
+                np.random.randint(240, 245, (27, 25, 30), dtype='uint8'),
+            ),
+            axis=3,
+        )
         sio.savemat(tmp.name, {"array": out_data})
         reader = napari_get_reader(tmp.name)
         in_data = reader(tmp.name)
         assert in_data[0][0].shape == (30, 27, 25, 3)
         assert in_data[0][1]["channel_axis"] == 3
+    assert in_data[0][1]["contrast_limits"] == [[0, 7], [0, 28], [0, 244]]
+
+
+def test_reader_int16():
+    with NamedTemporaryFile(suffix='.mat', delete=False) as tmp:
+        out_data = (np.random.randint(-84, 8, (27, 25, 30, 3), dtype='int16'),)
+
+        sio.savemat(tmp.name, {"array": out_data})
+        reader = napari_get_reader(tmp.name)
+        in_data = reader(tmp.name)
+        assert in_data[0][0].shape == (30, 27, 25, 3)
+        assert in_data[0][1]["channel_axis"] == 3
+    assert in_data[0][1]["contrast_limits"][0] == [-84, 7]
 
 
 def test_reader_hdf5(tmp_path):
-    out_data = np.random.randint(0, 255, (27, 25, 30, 4), dtype='uint8')
+    out_data = np.stack(
+        (
+            np.random.randint(0, 10, (27, 25, 30), dtype='uint8'),
+            np.random.randint(25, 29, (27, 25, 30), dtype='uint8'),
+            np.random.randint(240, 255, (27, 25, 30), dtype='uint8'),
+            np.random.randint(30, 71, (27, 25, 30), dtype='uint8'),
+        ),
+        axis=3,
+    )
     mdict = {}
     mdict[u'array'] = out_data
     tmp = str(tmp_path / "temp.mat")
@@ -46,6 +74,49 @@ def test_reader_hdf5(tmp_path):
     in_data = reader(tmp)
     assert in_data[0][0].shape == (30, 27, 25, 4)
     assert in_data[0][1]["channel_axis"] == 3
+    assert in_data[0][1]["contrast_limits"] == [
+        [0, 9],
+        [0, 28],
+        [0, 254],
+        [0, 70],
+    ]
+
+
+def test_reader_hdf5_3d(tmp_path):
+    out_data = np.random.randint(0, 10, (27, 25, 31), dtype='uint8')
+
+    mdict = {}
+    mdict[u'array'] = out_data
+    tmp = str(tmp_path / "temp.mat")
+    hdf5storage.savemat(tmp, mdict, format='7.3')
+    reader = napari_get_reader(tmp)
+    in_data = reader(tmp)
+    assert in_data[0][0].shape == (31, 27, 25)
+    assert in_data[0][1]["contrast_limits"] == [0, 9]
+
+
+def test_reader_hdf5_2d(tmp_path):
+    out_data = np.random.randint(0, 10, (270, 350), dtype='uint8')
+
+    mdict = {}
+    mdict[u'array'] = out_data
+    tmp = str(tmp_path / "temp.mat")
+    hdf5storage.savemat(tmp, mdict, format='7.3')
+    reader = napari_get_reader(tmp)
+    in_data = reader(tmp)
+    assert in_data[0][0].shape == (270, 350)
+    assert in_data[0][1]["contrast_limits"] == [0, 9]
+
+
+def test_reader_hdf5_1d(tmp_path):
+    out_data = np.random.randint(0, 10, 150, dtype='uint8')
+
+    mdict = {}
+    mdict[u'array'] = out_data
+    tmp = str(tmp_path / "temp.mat")
+    hdf5storage.savemat(tmp, mdict, format='7.3')
+    reader = napari_get_reader(tmp)
+    assert reader(tmp) is None
 
 
 def test_reader_no_images():
@@ -115,35 +186,34 @@ def test_prep_array_bool():
 
 def test_dask_contrast_limits_all():
     array = da.random.randint(0, 2, (1000, 10, 15))
-    contrast_limits = dask_contrast_limits(array, axis=0, num_samples=None)
+    contrast_limits = array_contrast_limits(array, axis=0, num_samples=None)
     assert contrast_limits == [0, 1]
 
 
 def test_dask_contrast_limits():
     array = da.random.randint(0, 2, (1000, 10, 15))
-    contrast_limits = dask_contrast_limits(array, axis=0)
+    contrast_limits = array_contrast_limits(array, axis=0)
     assert contrast_limits == [0, 1]
 
 
 def test_dask_contrast_limits_2d():
     array = da.random.randint(6, 8, (10, 15))
-    contrast_limits = dask_contrast_limits(array)
+    contrast_limits = array_contrast_limits(array)
     assert contrast_limits == [6, 7]
 
 
 def test_dask_contrast_limits_2d_all():
     array = da.random.randint(6, 8, (10, 15))
-    contrast_limits = dask_contrast_limits(array, axis=0, num_samples=None)
+    contrast_limits = array_contrast_limits(array, axis=0, num_samples=None)
     assert contrast_limits == [6, 7]
 
 
 def test_dask_contrast_limits_1d():
     array = da.random.randint(0, 2, 1000)
     with pytest.raises(ValueError):
-        dask_contrast_limits(array)
+        array_contrast_limits(array)
 
 
-def test_dask_contrast_limits_np():
-    array = np.random.randint(0, 2, (1000, 10, 15))
+def test_dask_contrast_limits_int():
     with pytest.raises(TypeError):
-        dask_contrast_limits(array)
+        array_contrast_limits(1)
