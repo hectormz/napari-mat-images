@@ -34,3 +34,6 @@ steps:
     pip install pytest pytest-azurepipelines
     pytest
   displayName: 'pytest'
+- script: |
+    bash <(curl -s https://codecov.io/bash)
+  displayName: 'Upload code coverage.'
