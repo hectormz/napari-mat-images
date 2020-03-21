@@ -89,7 +89,6 @@ If you encounter any problems, please `file an issue`_ along with a detailed des
 This `napari`_ plugin was generated with `Cookiecutter`_ along with `napari`_'s `cookiecutter-napari-plugin`_ template.
 
 .. _`Cookiecutter`: https://github.com/audreyr/cookiecutter
-.. _`@napari`: https://github.com/napari
 .. _`BSD-3`: http://opensource.org/licenses/BSD-3-Clause
 .. _`cookiecutter-napari-plugin`: https://github.com/napari/cookiecutter-napari-plugin
 .. _`file an issue`: https://github.com/hectormz/napari-mat-images/issues
