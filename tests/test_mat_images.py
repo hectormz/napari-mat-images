@@ -12,6 +12,7 @@ from napari_mat_images import (
     array_contrast_limits,
     napari_get_reader,
     prep_array,
+    rearrange_da_dims,
     rearrange_dims,
     shape_is_image,
 )
@@ -57,12 +58,13 @@ def test_reader_int16():
 
 
 def test_reader_hdf5(tmp_path):
+    # Create stack of [x, y, z, channel]
     out_data = np.stack(
         (
-            np.random.randint(0, 10, (27, 25, 30), dtype='uint8'),
-            np.random.randint(25, 29, (27, 25, 30), dtype='uint8'),
-            np.random.randint(240, 255, (27, 25, 30), dtype='uint8'),
-            np.random.randint(30, 71, (27, 25, 30), dtype='uint8'),
+            np.random.randint(0, 10, (27, 25, 50), dtype='uint8'),
+            np.random.randint(25, 29, (27, 25, 50), dtype='uint8'),
+            np.random.randint(240, 255, (27, 25, 50), dtype='uint8'),
+            np.random.randint(30, 71, (27, 25, 50), dtype='uint8'),
         ),
         axis=3,
     )
@@ -72,7 +74,8 @@ def test_reader_hdf5(tmp_path):
     hdf5storage.savemat(tmp, mdict, format='7.3')
     reader = napari_get_reader(tmp)
     in_data = reader(tmp)
-    assert in_data[0][0].shape == (30, 27, 25, 4)
+    # Receive stack in [z, y, x, channel]
+    assert in_data[0][0].shape == (50, 27, 25, 4)
     assert in_data[0][1]["channel_axis"] == 3
     assert in_data[0][1]["contrast_limits"] == [
         [0, 9],
@@ -217,3 +220,30 @@ def test_dask_contrast_limits_1d():
 def test_dask_contrast_limits_int():
     with pytest.raises(TypeError):
         array_contrast_limits(1)
+
+
+def test_rearrange_da_dims_2d():
+    """Test rearranging 2D dask array loaded from .mat file."""
+    array_shape = (45, 200)
+    array = da.zeros(array_shape)
+    array = rearrange_da_dims(array)
+    array_shape_new = array.shape
+    assert array_shape_new == (200, 45)
+
+
+def test_rearrange_da_dims_3d():
+    """Test rearranging 3D dask array loaded from .mat file."""
+    array_shape = (45, 200, 10_000)
+    array = da.zeros(array_shape)
+    array = rearrange_da_dims(array)
+    array_shape_new = array.shape
+    assert array_shape_new == (10_000, 200, 45)
+
+
+def test_rearrange_da_dims_4d():
+    """Test rearranging 4D dask array loaded from .mat file."""
+    array_shape = (3, 45, 200, 10_000)
+    array = da.zeros(array_shape)
+    array = rearrange_da_dims(array)
+    array_shape_new = array.shape
+    assert array_shape_new == (10_000, 200, 45, 3)

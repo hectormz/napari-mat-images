@@ -73,11 +73,11 @@ def load_mat_vars(file_path: str) -> Dict:
         var_list = [i for (i, v) in zip(var_list, is_image_list) if v]
         mat_dict = {}
         for var in var_list:
-            array = da.from_array(
-                mat_file[var], chunks=mat_file[var].chunks
-            ).squeeze()
+            chunk_size = mat_file[var].chunks
+            array = da.from_array(mat_file[var], chunks=chunk_size).squeeze()
             # .mat are saved in reverse order
-            mat_dict[var] = da.transpose(array)
+            array = rearrange_da_dims(array)
+            mat_dict[var] = array
     return mat_dict
 
 
@@ -169,6 +169,47 @@ def rearrange_dims(array: np.ndarray) -> np.ndarray:
         # If third dimension is longer than first two, move to first position
         if np.all(array.shape[2] > np.array(array.shape[0:2])):
             array = np.moveaxis(array, 2, 0)
+    return array
+
+
+def rearrange_da_dims(array: da.Array) -> da.Array:
+    """Flip dask array dims loaded from HDF5 .mat files and rearrange slices dim to front
+    
+    Args:
+        array (da.Array): 3-dimensional or more dask array
+    
+    Returns:
+        da.Array: array with rearranged dimensions
+    """
+    array_shape = array.shape
+    # Current dimension order
+    dims = np.arange(len(array_shape))
+    # Flip dims as if array dims were flipped to recover original saved dimensions
+    dims_flipped = np.flip(dims)
+    # breakpoint()
+    if len(array_shape) > 2:
+        # Flip array shape to recover original saved shape
+        array_shape_flipped = np.flip(array_shape)
+        # Find which dimension is largest (slices of stack) in flipped array shape
+        slices_flipped_ind = np.argmax(array_shape_flipped)
+        # Get slices dimension
+        slices_dim = dims_flipped[slices_flipped_ind]
+        # Remove slices dimensions from dims_flipped
+        dims_flipped = np.delete(dims_flipped, slices_flipped_ind)
+        # Insert slices dimensions to first dimension of dims_flipped
+        dims_flipped = np.insert(dims_flipped, 0, slices_dim)
+        # Determine which dimensions are no longer in agreement
+        move_positions = dims != dims_flipped
+        # If any dimensions need to be rearranged, move them
+        if np.any(move_positions):
+            # array = da.moveaxis(array, dims[move_positions], dims_flipped[move_positions])
+            array = da.moveaxis(
+                array,
+                source=dims_flipped[move_positions],
+                destination=dims[move_positions],
+            )
+    elif len(array_shape) == 2:
+        array = da.moveaxis(array, dims, dims_flipped)
     return array
 
 
