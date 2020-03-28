@@ -233,6 +233,8 @@ def array_contrast_limits(array, axis=0, num_samples=100) -> List[float]:
         random_samples = np.random.choice(
             array.shape[axis], num_samples, replace=False
         )
+        # Sort random samples for dask slicing efficiency
+        random_samples = np.sort(random_samples)
         # If unsigned int, use 0 as lower bound
         if np.issubdtype(array.dtype, np.unsignedinteger):
             contrast_min = 0
