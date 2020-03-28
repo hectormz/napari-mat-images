@@ -261,3 +261,22 @@ def array_contrast_limits(array, axis=0, num_samples=100) -> List[float]:
         raise ValueError("Array of dimensions >= 2 required.")
 
     return [contrast_min, contrast_max]
+
+
+def update_chunk_size(array_size: Sequence, chunk_size: Sequence) -> List:
+    """Determines new chunk size when loading dask array.
+        Potentially increases slice axis chunk size to 10 if 1.
+        This makes loading array faster for user.
+    
+    Args:
+        array_size (Sequence): array size of dask array
+        chunk_size (Sequence): original chunk size of dask array
+    
+    Returns:
+        List: Updated (or original) chunk size
+    """
+    chunk_size = list(chunk_size)
+    slice_index = np.argmax(array_size)
+    if chunk_size[slice_index] == 1:
+        chunk_size[slice_index] = 10
+    return chunk_size

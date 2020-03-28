@@ -15,6 +15,7 @@ from napari_mat_images import (
     rearrange_da_dims,
     rearrange_dims,
     shape_is_image,
+    update_chunk_size,
 )
 
 
@@ -247,3 +248,21 @@ def test_rearrange_da_dims_4d():
     array = rearrange_da_dims(array)
     array_shape_new = array.shape
     assert array_shape_new == (10_000, 200, 45, 3)
+
+
+def test_update_chunksize():
+    chunk_size = (1, 200, 300)
+    array_size = (10_000, 200, 300)
+    assert update_chunk_size(array_size, chunk_size) == [10, 200, 300]
+
+
+def test_update_chunksize_nochange():
+    chunk_size = (20, 200, 300)
+    array_size = (10_000, 200, 300)
+    assert update_chunk_size(array_size, chunk_size) == [20, 200, 300]
+
+
+def test_update_chunksize_middle():
+    chunk_size = (200, 1, 300)
+    array_size = (200, 10_000, 300)
+    assert update_chunk_size(array_size, chunk_size) == [200, 10, 300]
