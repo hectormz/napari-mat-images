@@ -73,7 +73,9 @@ def load_mat_vars(file_path: str) -> Dict:
         var_list = [i for (i, v) in zip(var_list, is_image_list) if v]
         mat_dict = {}
         for var in var_list:
+            array_size = mat_file[var].size
             chunk_size = mat_file[var].chunks
+            chunk_size = update_chunk_size(array_size, chunk_size)
             array = da.from_array(mat_file[var], chunks=chunk_size).squeeze()
             # .mat are saved in reverse order
             array = rearrange_da_dims(array)
