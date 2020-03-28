@@ -251,18 +251,21 @@ def test_rearrange_da_dims_4d():
 
 
 def test_update_chunksize():
+    """Test that chunk size of index (0) will be increased. """
     chunk_size = (1, 200, 300)
     array_size = (10_000, 200, 300)
     assert update_chunk_size(array_size, chunk_size) == [10, 200, 300]
 
 
 def test_update_chunksize_nochange():
+    """Test that chunk size of index (0) won't change. """
     chunk_size = (20, 200, 300)
     array_size = (10_000, 200, 300)
     assert update_chunk_size(array_size, chunk_size) == [20, 200, 300]
 
 
 def test_update_chunksize_middle():
+    """Test that chunk size of index (1) will be increased. """
     chunk_size = (200, 1, 300)
     array_size = (200, 10_000, 300)
     assert update_chunk_size(array_size, chunk_size) == [200, 10, 300]
