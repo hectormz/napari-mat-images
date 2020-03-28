@@ -175,24 +175,24 @@ def rearrange_dims(array: np.ndarray) -> np.ndarray:
 
 
 def rearrange_da_dims(array: da.Array) -> da.Array:
-    """Flip dask array dims loaded from HDF5 .mat files and rearrange slices dim to front
-    
+    """Flip dask array dims from HDF5 .mat files & move slices dim to 0th pos.
+
     Args:
         array (da.Array): 3-dimensional or more dask array
-    
+
     Returns:
         da.Array: array with rearranged dimensions
     """
     array_shape = array.shape
     # Current dimension order
     dims = np.arange(len(array_shape))
-    # Flip dims as if array dims were flipped to recover original saved dimensions
+    # Flip dims as if array dims were flipped to recover orig. saved dimensions
     dims_flipped = np.flip(dims)
     # breakpoint()
     if len(array_shape) > 2:
         # Flip array shape to recover original saved shape
         array_shape_flipped = np.flip(array_shape)
-        # Find which dimension is largest (slices of stack) in flipped array shape
+        # Find largest dimension (slices of stack) in flipped array shape
         slices_flipped_ind = np.argmax(array_shape_flipped)
         # Get slices dimension
         slices_dim = dims_flipped[slices_flipped_ind]
@@ -204,7 +204,6 @@ def rearrange_da_dims(array: da.Array) -> da.Array:
         move_positions = dims != dims_flipped
         # If any dimensions need to be rearranged, move them
         if np.any(move_positions):
-            # array = da.moveaxis(array, dims[move_positions], dims_flipped[move_positions])
             array = da.moveaxis(
                 array,
                 source=dims_flipped[move_positions],
@@ -217,12 +216,12 @@ def rearrange_da_dims(array: da.Array) -> da.Array:
 
 def array_contrast_limits(array, axis=0, num_samples=100) -> List[float]:
     """Determine min/max of numpy/dask arrays along axis if n-dimensional
-    
+
     Args:
         dask_array (Union[np.ndarray, dask.array]): n-dimensional array
         axis (int): Axis along n-dimensional array to sample min/max
         num_samples (int): Number of slices to sample from if large array.
-    
+
     Returns:
         List[float]: min/max of array
     """
@@ -269,11 +268,11 @@ def update_chunk_size(array_size: Sequence, chunk_size: Sequence) -> List:
     """Determines new chunk size when loading dask array.
         Potentially increases slice axis chunk size to 10 if 1.
         This makes loading array faster for user.
-    
+
     Args:
         array_size (Sequence): array size of dask array
         chunk_size (Sequence): original chunk size of dask array
-    
+
     Returns:
         List: Updated (or original) chunk size
     """
