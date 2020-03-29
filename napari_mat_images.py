@@ -73,9 +73,13 @@ def load_mat_vars(file_path: str) -> Dict:
         var_list = [i for (i, v) in zip(var_list, is_image_list) if v]
         mat_dict = {}
         for var in var_list:
-            mat_dict[var] = da.from_array(
-                mat_file[var], chunks=mat_file[var].chunks
-            ).squeeze()
+            array_size = mat_file[var].size
+            chunk_size = mat_file[var].chunks
+            chunk_size = update_chunk_size(array_size, chunk_size)
+            array = da.from_array(mat_file[var], chunks=chunk_size).squeeze()
+            # .mat are saved in reverse order
+            array = rearrange_da_dims(array)
+            mat_dict[var] = array
     return mat_dict
 
 
@@ -92,33 +96,24 @@ def reader_function(path: PathLike) -> List[LayerData]:
         var_list = list(mat_dict.keys())
         data = [None for __ in var_list]
         for j, var in enumerate(var_list):
+            array = mat_dict[var]
             # optional kwargs for the corresponding viewer.add_* method
             meta = {"name": var}
-            if len(mat_dict[var].shape) == 4:
+            if len(array.shape) == 3 or len(array.shape) == 2:
+                meta["contrast_limits"] = array_contrast_limits(array)
+            elif len(array.shape) == 4:
                 meta["channel_axis"] = 3
-            if isinstance(mat_dict[var], da.Array):
+                # Set contrast min/max for each channel
+                num_channels = array.shape[3]
+                contrast_limits = [None for __ in range(num_channels)]
+                for chann_index in range(num_channels):
+                    contrast_limits[chann_index] = array_contrast_limits(
+                        array[:, :, :, chann_index]
+                    )
+                meta["contrast_limits"] = contrast_limits
+            if isinstance(array, da.Array):
                 meta["is_pyramid"] = False
-                if len(mat_dict[var].shape) > 2:
-                    num_samples = min(100, mat_dict[var].shape[0])
-                    random_samples = np.random.choice(
-                        mat_dict[var].shape[0], num_samples, replace=False
-                    )
-                    # If unsigned int, use 0 as lower bound
-                    if np.issubdtype(mat_dict[var].dtype, np.unsignedinteger):
-                        contrast_min = 0
-                    else:
-                        contrast_min = (
-                            mat_dict[var][random_samples].min().compute()
-                        )
-                    contrast_max = (
-                        mat_dict[var][random_samples].max().compute()
-                    )
-                else:
-                    contrast_min = mat_dict[var].min().compute()
-                    contrast_max = mat_dict[var].max().compute()
-
-                meta["contrast_limits"] = [contrast_min, contrast_max]
-            data[j] = (prep_array(mat_dict[var]), meta)
+            data[j] = (prep_array(array), meta)
         data_list[i] = data
 
     # Return None if no .mat files could be read
@@ -177,3 +172,112 @@ def rearrange_dims(array: np.ndarray) -> np.ndarray:
         if np.all(array.shape[2] > np.array(array.shape[0:2])):
             array = np.moveaxis(array, 2, 0)
     return array
+
+
+def rearrange_da_dims(array: da.Array) -> da.Array:
+    """Flip dask array dims from HDF5 .mat files & move slices dim to 0th pos.
+
+    Args:
+        array (da.Array): 3-dimensional or more dask array
+
+    Returns:
+        da.Array: array with rearranged dimensions
+    """
+    array_shape = array.shape
+    # Current dimension order
+    dims = np.arange(len(array_shape))
+    # Flip dims as if array dims were flipped to recover orig. saved dimensions
+    dims_flipped = np.flip(dims)
+    # breakpoint()
+    if len(array_shape) > 2:
+        # Flip array shape to recover original saved shape
+        array_shape_flipped = np.flip(array_shape)
+        # Find largest dimension (slices of stack) in flipped array shape
+        slices_flipped_ind = np.argmax(array_shape_flipped)
+        # Get slices dimension
+        slices_dim = dims_flipped[slices_flipped_ind]
+        # Remove slices dimensions from dims_flipped
+        dims_flipped = np.delete(dims_flipped, slices_flipped_ind)
+        # Insert slices dimensions to first dimension of dims_flipped
+        dims_flipped = np.insert(dims_flipped, 0, slices_dim)
+        # Determine which dimensions are no longer in agreement
+        move_positions = dims != dims_flipped
+        # If any dimensions need to be rearranged, move them
+        if np.any(move_positions):
+            array = da.moveaxis(
+                array,
+                source=dims_flipped[move_positions],
+                destination=dims[move_positions],
+            )
+    elif len(array_shape) == 2:
+        array = da.moveaxis(array, dims, dims_flipped)
+    return array
+
+
+def array_contrast_limits(array, axis=0, num_samples=100) -> List[float]:
+    """Determine min/max of numpy/dask arrays along axis if n-dimensional
+
+    Args:
+        dask_array (Union[np.ndarray, dask.array]): n-dimensional array
+        axis (int): Axis along n-dimensional array to sample min/max
+        num_samples (int): Number of slices to sample from if large array.
+
+    Returns:
+        List[float]: min/max of array
+    """
+    if not isinstance(array, da.Array) and not isinstance(array, np.ndarray):
+        raise TypeError("dask/numpy array expected")
+    if len(array.shape) > 2:
+        if num_samples is None:
+            num_samples = array.shape[axis]
+        num_samples = min(num_samples, array.shape[axis])
+        random_samples = np.random.choice(
+            array.shape[axis], num_samples, replace=False
+        )
+        # Sort random samples for dask slicing efficiency
+        random_samples = np.sort(random_samples)
+        # If unsigned int, use 0 as lower bound
+        if np.issubdtype(array.dtype, np.unsignedinteger):
+            contrast_min = 0
+        else:
+            contrast_min = array[random_samples].min()
+            if isinstance(array, da.Array):
+                contrast_min = contrast_min.compute()
+        contrast_max = array[random_samples].max()
+        if isinstance(array, da.Array):
+            contrast_max = contrast_max.compute()
+    elif len(array.shape) == 2:
+        if num_samples is None:
+            num_samples = array.size
+        num_samples = min(num_samples, array.size)
+        row_ind = np.random.randint(0, array.shape[0], num_samples)
+        col_ind = np.random.randint(0, array.shape[1], num_samples)
+        if isinstance(array, da.Array):
+            contrast_min = array.vindex[row_ind, col_ind].min().compute()
+            contrast_max = array.vindex[row_ind, col_ind].max().compute()
+        else:
+            contrast_min = array[row_ind, col_ind].min()
+            contrast_max = array[row_ind, col_ind].max()
+    else:
+        raise ValueError("Array of dimensions >= 2 required.")
+
+    return [contrast_min, contrast_max]
+
+
+def update_chunk_size(array_size: Sequence, chunk_size: Sequence) -> List:
+    """Determines new chunk size when loading dask array.
+        Potentially increases slice axis chunk size to 10 if 1.
+        This makes loading array faster for user.
+
+    Args:
+        array_size (Sequence): array size of dask array
+        chunk_size (Sequence): original chunk size of dask array
+
+    Returns:
+        List: Updated (or original) chunk size
+    """
+    chunk_size = list(chunk_size)
+    slice_index = np.argmax(array_size)
+    if chunk_size[slice_index] == 1:
+        chunk_size[slice_index] = 10
+    return chunk_size
