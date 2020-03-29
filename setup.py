@@ -11,9 +11,12 @@ def requirements():
         return f.read()
 
 
-def read(fname):
-    file_path = os.path.join(os.path.dirname(__file__), fname)
-    return codecs.open(file_path, encoding='utf-8').read()
+def long_description() -> str:
+    # Read the contents of README file
+    this_directory = os.path.dirname(__file__)
+    with open(os.path.join(this_directory, "README.rst"), encoding="utf-8") as f:
+        readme = f.read()
+    return readme
 
 
 setup(
@@ -26,7 +29,8 @@ setup(
     license='BSD-3',
     url='https://github.com/hectormz/napari-mat-images',
     description='A plugin to load images stored in .mat files with napari',
-    long_description=read('README.rst'),
+    long_description=long_description(),
+    long_description_content_type='text/x-rst',
     py_modules=['napari_mat_images'],
     python_requires='>=3.6',
     install_requires=requirements(),
