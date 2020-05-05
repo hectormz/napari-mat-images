@@ -46,13 +46,9 @@ Installation
 
 ``napari-mat-images`` requires `napari`_ to be installed, although it is not listed as a requirement for installation.
 This plugin relies on plugin functionality found in ``napari`` version > ``0.2.12``.
-Once released, this can be installed via `pip`_ from `PyPI`_::
+This can be installed via `pip`_ from `PyPI`_::
 
     $ pip install napari>0.2.12
-
-In the meantime, the latest version of napari can be installed from Github::
-
-    $ pip install git+https://github.com/napari/napari.git@master
 
 You can install ``napari-mat-images`` via `pip`_ from `PyPI`_::
 
