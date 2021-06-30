@@ -4,7 +4,7 @@
 
 [![Python versions](https://img.shields.io/pypi/pyversions/napari-mat-images.svg)](https://pypi.org/project/napari-mat-images)
 
-[![See Build Status on Azure Pipelines](https://dev.azure.com/hectormz-1/napari-mat-images/_apis/build/status/hectormz.napari-mat-images?branchName=master)](https://dev.azure.com/hectormz-1/napari-mat-images/_build/latest?definitionId=1&branchName=master)
+[![See Build Status on Azure Pipelines](https://dev.azure.com/hectormz-1/napari-mat-images/_apis/build/status/hectormz.napari-mat-images?branchName=master)](https://dev.azure.com/hectormz-1/napari-mat-images/_build/latest?definitionId=1&branchName=main)
 
 ## Features
 
