@@ -38,9 +38,9 @@ Please ensure that you have done the following:
 
 1. [ ] PR in from a fork off your branch. Do not PR from `<your_username>`:`dev`, but rather from `<your_username>`:`<feature-branch_name>`.
 <!-- Doing this helps us keep the commit history much cleaner than it would otherwise be. -->
-2. [ ] If you're not on the contributors list, add yourself to `AUTHORS.rst`.
+2. [ ] If you're not on the contributors list, add yourself to `AUTHORS.md`.
 <!-- We'd like to acknowledge your contributions! -->
-3. [ ] Add a line to `CHANGELOG.rst` under the latest version header (i.e. the one that is "on deck") describing the contribution.
+3. [ ] Add a line to `CHANGELOG.md` under the latest version header (i.e. the one that is "on deck") describing the contribution.
     - Consolidate multiple related PRs to a single line.
 
 ## Quick Check
