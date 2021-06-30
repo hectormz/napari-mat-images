@@ -21,7 +21,7 @@ def long_description() -> str:
 
 setup(
     name='napari-mat-images',
-    version='0.1.2',
+    version='0.1.3',
     author='Hector Munoz',
     author_email='hectormz.git@gmail.com',
     maintainer='Hector Munoz',
