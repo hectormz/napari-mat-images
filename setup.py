@@ -14,7 +14,7 @@ def requirements():
 def long_description() -> str:
     # Read the contents of README file
     this_directory = os.path.dirname(__file__)
-    with open(os.path.join(this_directory, "README.rst"), encoding="utf-8") as f:
+    with open(os.path.join(this_directory, "README.md"), encoding="utf-8") as f:
         readme = f.read()
     return readme
 
@@ -28,9 +28,9 @@ setup(
     maintainer_email='hectormz.git@gmail.com',
     license='BSD-3',
     url='https://github.com/hectormz/napari-mat-images',
-    description='A plugin to load images stored in .mat files with napari',
+    description='A plugin to load images stored in MATLAB .mat files with napari',
     long_description=long_description(),
-    long_description_content_type='text/x-rst',
+    long_description_content_type='text/markdown',
     py_modules=['napari_mat_images'],
     python_requires='>=3.6',
     install_requires=requirements(),
@@ -44,6 +44,7 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Operating System :: OS Independent',
